@@ -1,0 +1,23 @@
+{
+  "name": "member-points-server",
+  "version": "1.0.0",
+  "description": "会员积分系统后端服务",
+  "main": "src/app.js",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "nodemon src/app.js",
+    "start": "node src/app.js",
+    "init:db": "node scripts/init-db.js"
+  },
+  "dependencies": {
+    "fastify": "^4.26.0",
+    "@fastify/cors": "^9.0.1",
+    "mysql2": "^3.9.0",
+    "dotenv": "^16.4.0",
+    "dayjs": "^1.11.10",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.3"
+  }
+}

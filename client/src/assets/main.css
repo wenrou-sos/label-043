@@ -1,0 +1,98 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background-color: #f0f2f5;
+}
+
+#app {
+  min-height: 100vh;
+}
+
+.layout-container {
+  min-height: 100vh;
+}
+
+.logo {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 18px;
+  font-weight: bold;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.page-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.stat-card {
+  text-align: center;
+}
+
+.stat-card .stat-value {
+  font-size: 28px;
+  font-weight: bold;
+  color: #1890ff;
+}
+
+.stat-card .stat-label {
+  color: #666;
+  margin-top: 8px;
+}
+
+.table-toolbar {
+  margin-bottom: 16px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pagination-container {
+  margin-top: 16px;
+  text-align: right;
+}
+
+.detail-label {
+  color: #666;
+  width: 100px;
+  display: inline-block;
+}
+
+.points-positive {
+  color: #52c41a;
+  font-weight: 600;
+}
+
+.points-negative {
+  color: #ff4d4f;
+  font-weight: 600;
+}
+
+.level-badge {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.level-1 { background: #f0f0f0; color: #666; }
+.level-2 { background: #e6f7ff; color: #1890ff; }
+.level-3 { background: #fffbe6; color: #faad14; }
+.level-4 { background: #f9f0ff; color: #722ed1; }
+.level-5 { background: #fff1f0; color: #f5222d; }
