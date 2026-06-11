@@ -68,25 +68,32 @@
       :title="isEdit ? '编辑会员' : '新增会员'"
       width="500px"
       @ok="handleSubmit"
-      @cancel="modalVisible = false"
+      @cancel="handleMemberCancel"
+      :confirm-loading="memberSubmitting"
     >
-      <a-form :model="formData" :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
-        <a-form-item label="姓名" required>
+      <a-form
+        ref="memberFormRef"
+        :model="formData"
+        :rules="memberRules"
+        :label-col="{ span: 6 }"
+        :wrapper-col="{ span: 16 }"
+      >
+        <a-form-item label="姓名" name="name">
           <a-input v-model:value="formData.name" placeholder="请输入会员姓名" />
         </a-form-item>
-        <a-form-item label="手机号" required>
+        <a-form-item label="手机号" name="phone">
           <a-input v-model:value="formData.phone" placeholder="请输入手机号码" />
         </a-form-item>
-        <a-form-item label="邮箱">
+        <a-form-item label="邮箱" name="email">
           <a-input v-model:value="formData.email" placeholder="请输入邮箱" />
         </a-form-item>
-        <a-form-item label="状态">
+        <a-form-item label="状态" name="status">
           <a-select v-model:value="formData.status">
             <a-select-option :value="1">正常</a-select-option>
             <a-select-option :value="0">禁用</a-select-option>
           </a-select>
         </a-form-item>
-        <a-form-item label="备注">
+        <a-form-item label="备注" name="remark">
           <a-textarea v-model:value="formData.remark" placeholder="请输入备注" :rows="3" />
         </a-form-item>
       </a-form>
@@ -98,20 +105,27 @@
       width="500px"
       @ok="handlePointsSubmit"
       @cancel="pointsModalVisible = false"
+      :confirm-loading="pointsSubmitting"
     >
       <a-descriptions :column="1" size="small" style="margin-bottom: 16px;">
         <a-descriptions-item label="会员">{{ currentMember?.name }}</a-descriptions-item>
         <a-descriptions-item label="当前积分">{{ currentMember?.points }}</a-descriptions-item>
         <a-descriptions-item label="当前等级">{{ currentMember?.level_name }}</a-descriptions-item>
       </a-descriptions>
-      <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
-        <a-form-item label="调整类型" required>
+      <a-form
+        ref="pointsFormRef"
+        :model="pointsForm"
+        :rules="pointsRules"
+        :label-col="{ span: 6 }"
+        :wrapper-col="{ span: 16 }"
+      >
+        <a-form-item label="调整类型" name="type">
           <a-select v-model:value="pointsForm.type">
             <a-select-option :value="1">增加积分</a-select-option>
             <a-select-option :value="2">减少积分</a-select-option>
           </a-select>
         </a-form-item>
-        <a-form-item label="积分数量" required>
+        <a-form-item label="积分数量" name="points">
           <a-input-number
             v-model:value="pointsForm.points"
             :min="1"
@@ -120,10 +134,10 @@
             placeholder="请输入积分数量"
           />
         </a-form-item>
-        <a-form-item label="调整原因" required>
+        <a-form-item label="调整原因" name="reason">
           <a-textarea v-model:value="pointsForm.reason" placeholder="请输入调整原因" :rows="3" />
         </a-form-item>
-        <a-form-item label="操作人">
+        <a-form-item label="操作人" name="operator">
           <a-input v-model:value="pointsForm.operator" placeholder="请输入操作人" />
         </a-form-item>
       </a-form>
@@ -272,12 +286,37 @@ const pagination = reactive({ page: 1, pageSize: 10 });
 const modalVisible = ref(false);
 const isEdit = ref(false);
 const editingId = ref(null);
+const memberFormRef = ref(null);
+const memberSubmitting = ref(false);
 const formData = reactive({
   name: '', phone: '', email: '', status: 1, remark: ''
 });
+const memberRules = {
+  name: [
+    { required: true, message: '请输入会员姓名', trigger: 'blur' },
+    { max: 50, message: '姓名最多50个字符', trigger: 'blur' }
+  ],
+  phone: [
+    { required: true, message: '请输入手机号码', trigger: 'blur' },
+    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码', trigger: 'blur' }
+  ],
+  email: [
+    { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }
+  ]
+};
 
 const pointsModalVisible = ref(false);
+const pointsFormRef = ref(null);
+const pointsSubmitting = ref(false);
 const pointsForm = reactive({ type: 1, points: null, reason: '', operator: 'admin' });
+const pointsRules = {
+  type: [{ required: true, message: '请选择调整类型', trigger: 'change' }],
+  points: [{ required: true, message: '请输入积分数量', trigger: 'blur' }],
+  reason: [
+    { required: true, message: '请输入调整原因', trigger: 'blur' },
+    { max: 255, message: '原因最多255个字符', trigger: 'blur' }
+  ]
+};
 
 const couponModalVisible = ref(false);
 const selectedCouponId = ref(null);
@@ -375,7 +414,20 @@ const openEditModal = (record) => {
   modalVisible.value = true;
 };
 
+const handleMemberCancel = () => {
+  memberFormRef.value?.clearValidate();
+  modalVisible.value = false;
+};
+
 const handleSubmit = async () => {
+  try {
+    await memberFormRef.value.validate();
+  } catch (error) {
+    message.warning('请完善必填项');
+    return;
+  }
+
+  memberSubmitting.value = true;
   try {
     if (isEdit.value) {
       await updateMember(editingId.value, formData);
@@ -385,9 +437,12 @@ const handleSubmit = async () => {
       message.success('创建成功');
     }
     modalVisible.value = false;
+    memberFormRef.value?.clearValidate();
     loadData();
   } catch (error) {
     console.error('提交失败:', error);
+  } finally {
+    memberSubmitting.value = false;
   }
 };
 
@@ -409,6 +464,14 @@ const openPointsModal = (record) => {
 
 const handlePointsSubmit = async () => {
   try {
+    await pointsFormRef.value.validate();
+  } catch (error) {
+    message.warning('请完善必填项');
+    return;
+  }
+
+  pointsSubmitting.value = true;
+  try {
     const points = pointsForm.type === 1 ? pointsForm.points : -pointsForm.points;
     await updateMemberPoints(currentMember.value.id, {
       points,
@@ -418,9 +481,12 @@ const handlePointsSubmit = async () => {
     });
     message.success('积分调整成功');
     pointsModalVisible.value = false;
+    pointsFormRef.value?.clearValidate();
     loadData();
   } catch (error) {
     console.error('积分调整失败:', error);
+  } finally {
+    pointsSubmitting.value = false;
   }
 };
 
