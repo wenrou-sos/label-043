@@ -11,6 +11,7 @@ fastify.register(require('./routes/levels'), { prefix: '/api/levels' });
 fastify.register(require('./routes/members'), { prefix: '/api/members' });
 fastify.register(require('./routes/point-flows'), { prefix: '/api/point-flows' });
 fastify.register(require('./routes/coupons'), { prefix: '/api/coupons' });
+fastify.register(require('./routes/statistics'), { prefix: '/api/statistics' });
 
 fastify.get('/api/health', async (request, reply) => {
   return { code: 0, message: 'ok', data: { status: 'running' } };

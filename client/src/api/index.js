@@ -24,3 +24,8 @@ export const deleteCoupon = (id) => request.delete(`/coupons/${id}`);
 export const issueCoupon = (id, data) => request.post(`/coupons/${id}/issue`, data);
 export const getMemberCoupons = (memberId, params) => request.get(`/coupons/member/${memberId}`, { params });
 export const useCoupon = (memberCouponId, data) => request.post(`/coupons/use/${memberCouponId}`, data);
+
+export const getStatsOverview = () => request.get('/statistics/overview');
+export const getLevelDistribution = () => request.get('/statistics/level-distribution');
+export const getMonthlyNewMembers = () => request.get('/statistics/monthly-new-members');
+export const getPointFlowTypeStats = () => request.get('/statistics/point-flow-type');

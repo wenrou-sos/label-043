@@ -30,23 +30,25 @@
     <a-row :gutter="16" style="margin-top: 16px;">
       <a-col :span="12">
         <a-card title="会员等级分布">
-          <a-table
-            :columns="levelColumns"
-            :data-source="levels"
-            :pagination="false"
-            size="small"
-          >
-            <template #bodyCell="{ column, record }">
-              <template v-if="column.key === 'discount'">
-                {{ record.discount }}折
-              </template>
-              <template v-else-if="column.key === 'range'">
-                {{ record.min_points }} - {{ record.max_points || '不限' }}
-              </template>
-            </template>
-          </a-table>
+          <v-chart :option="levelChartOption" style="height: 350px;" autoresize />
         </a-card>
       </a-col>
+      <a-col :span="12">
+        <a-card title="积分流水类型占比（近6个月）">
+          <v-chart :option="flowTypeChartOption" style="height: 350px;" autoresize />
+        </a-card>
+      </a-col>
+    </a-row>
+
+    <a-row style="margin-top: 16px;">
+      <a-col :span="24">
+        <a-card title="每月新增会员趋势（近12个月）">
+          <v-chart :option="monthlyChartOption" style="height: 350px;" autoresize />
+        </a-card>
+      </a-col>
+    </a-row>
+
+    <a-row :gutter="16" style="margin-top: 16px;">
       <a-col :span="12">
         <a-card title="最近会员">
           <a-table
@@ -70,35 +72,40 @@
           </a-table>
         </a-card>
       </a-col>
+      <a-col :span="12">
+        <a-card title="最近积分流水">
+          <a-table
+            :columns="flowColumns"
+            :data-source="recentFlows"
+            :pagination="false"
+            size="small"
+          >
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.key === 'points'">
+                <span :class="record.points > 0 ? 'points-positive' : 'points-negative'">
+                  {{ record.points > 0 ? '+' : '' }}{{ record.points }}
+                </span>
+              </template>
+              <template v-else-if="column.key === 'type'">
+                <a-tag :color="record.type === 1 ? 'green' : 'orange'">
+                  {{ record.type === 1 ? '获取' : '消耗' }}
+                </a-tag>
+              </template>
+            </template>
+          </a-table>
+        </a-card>
+      </a-col>
     </a-row>
-
-    <a-card title="最近积分流水" style="margin-top: 16px;">
-      <a-table
-        :columns="flowColumns"
-        :data-source="recentFlows"
-        :pagination="false"
-        size="small"
-      >
-        <template #bodyCell="{ column, record }">
-          <template v-if="column.key === 'points'">
-            <span :class="record.points > 0 ? 'points-positive' : 'points-negative'">
-              {{ record.points > 0 ? '+' : '' }}{{ record.points }}
-            </span>
-          </template>
-          <template v-else-if="column.key === 'type'">
-            <a-tag :color="record.type === 1 ? 'green' : 'orange'">
-              {{ record.type === 1 ? '获取' : '消耗' }}
-            </a-tag>
-          </template>
-        </template>
-      </a-table>
-    </a-card>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { getMembers, getPointFlows, getLevels, getCoupons } from '@/api';
+import { ref, computed, onMounted } from 'vue';
+import {
+  getMembers, getPointFlows, getCoupons,
+  getStatsOverview, getLevelDistribution,
+  getMonthlyNewMembers, getPointFlowTypeStats
+} from '@/api';
 
 const stats = ref({
   totalMembers: 0,
@@ -107,16 +114,11 @@ const stats = ref({
   issuedCoupons: 0
 });
 
-const levels = ref([]);
+const levelDistribution = ref([]);
+const monthlyNewMembers = ref([]);
+const flowTypeStats = ref([]);
 const recentMembers = ref([]);
 const recentFlows = ref([]);
-
-const levelColumns = [
-  { title: '等级名称', dataIndex: 'name', key: 'name' },
-  { title: '积分范围', key: 'range' },
-  { title: '折扣', key: 'discount' },
-  { title: '描述', dataIndex: 'description', key: 'description' }
-];
 
 const memberColumns = [
   { title: '会员编号', dataIndex: 'member_no', key: 'member_no' },
@@ -135,22 +137,173 @@ const flowColumns = [
   { title: '时间', dataIndex: 'flow_time', key: 'flow_time' }
 ];
 
+const levelColors = ['#1890ff', '#52c41a', '#faad14', '#722ed1', '#eb2f96'];
+
+const levelChartOption = computed(() => ({
+  tooltip: {
+    trigger: 'item',
+    formatter: '{b}: {c} ({d}%)'
+  },
+  legend: {
+    orient: 'vertical',
+    right: '5%',
+    top: 'center'
+  },
+  color: levelColors,
+  series: [
+    {
+      type: 'pie',
+      radius: ['40%', '70%'],
+      center: ['35%', '50%'],
+      avoidLabelOverlap: false,
+      itemStyle: {
+        borderRadius: 8,
+        borderColor: '#fff',
+        borderWidth: 2
+      },
+      label: {
+        show: false
+      },
+      emphasis: {
+        label: {
+          show: true,
+          fontSize: 16,
+          fontWeight: 'bold'
+        }
+      },
+      data: levelDistribution.value.map(item => ({
+        value: item.value,
+        name: item.level_name
+      }))
+    }
+  ]
+}));
+
+const flowTypeChartOption = computed(() => ({
+  tooltip: {
+    trigger: 'item',
+    formatter: '{b}: {c} ({d}%)'
+  },
+  legend: {
+    orient: 'vertical',
+    right: '5%',
+    top: 'center'
+  },
+  color: ['#52c41a', '#fa8c16'],
+  series: [
+    {
+      type: 'pie',
+      radius: '60%',
+      center: ['35%', '50%'],
+      avoidLabelOverlap: false,
+      itemStyle: {
+        borderRadius: 8,
+        borderColor: '#fff',
+        borderWidth: 2
+      },
+      label: {
+        show: true,
+        formatter: '{b}\n{d}%'
+      },
+      emphasis: {
+        label: {
+          show: true,
+          fontSize: 16,
+          fontWeight: 'bold'
+        }
+      },
+      data: flowTypeStats.value
+    }
+  ]
+}));
+
+const monthlyChartOption = computed(() => ({
+  tooltip: {
+    trigger: 'axis',
+    formatter: '{b}<br/>新增会员: {c}'
+  },
+  legend: {
+    data: ['新增会员']
+  },
+  grid: {
+    left: '3%',
+    right: '4%',
+    bottom: '3%',
+    containLabel: true
+  },
+  xAxis: {
+    type: 'category',
+    boundaryGap: false,
+    data: monthlyNewMembers.value.map(item => item.month)
+  },
+  yAxis: {
+    type: 'value',
+    minInterval: 1
+  },
+  series: [
+    {
+      name: '新增会员',
+      type: 'line',
+      smooth: true,
+      symbol: 'circle',
+      symbolSize: 8,
+      lineStyle: {
+        width: 3,
+        color: '#1890ff'
+      },
+      itemStyle: {
+        color: '#1890ff'
+      },
+      areaStyle: {
+        color: {
+          type: 'linear',
+          x: 0,
+          y: 0,
+          x2: 0,
+          y2: 1,
+          colorStops: [
+            { offset: 0, color: 'rgba(24, 144, 255, 0.3)' },
+            { offset: 1, color: 'rgba(24, 144, 255, 0.05)' }
+          ]
+        }
+      },
+      data: monthlyNewMembers.value.map(item => item.value)
+    }
+  ]
+}));
+
 const loadData = async () => {
   try {
-    const [membersData, flowsData, levelsData, couponsData] = await Promise.all([
+    const [
+      overview,
+      levelData,
+      monthlyData,
+      flowTypeData,
+      membersData,
+      flowsData,
+      couponsData
+    ] = await Promise.all([
+      getStatsOverview(),
+      getLevelDistribution(),
+      getMonthlyNewMembers(),
+      getPointFlowTypeStats(),
       getMembers({ page: 1, pageSize: 5 }),
       getPointFlows({ page: 1, pageSize: 8 }),
-      getLevels(),
       getCoupons({ page: 1, pageSize: 100 })
     ]);
 
-    stats.value.totalMembers = membersData.total;
+    stats.value = {
+      totalMembers: overview.totalMembers,
+      totalPoints: overview.totalPoints,
+      totalCoupons: overview.totalCoupons,
+      issuedCoupons: overview.issuedCoupons
+    };
+
+    levelDistribution.value = levelData;
+    monthlyNewMembers.value = monthlyData;
+    flowTypeStats.value = flowTypeData;
     recentMembers.value = membersData.list;
     recentFlows.value = flowsData.list;
-    levels.value = levelsData;
-    stats.value.totalCoupons = couponsData.total;
-    stats.value.issuedCoupons = couponsData.list.reduce((sum, c) => sum + c.used_quantity, 0);
-    stats.value.totalPoints = membersData.list.reduce((sum, m) => sum + m.points, 0);
   } catch (error) {
     console.error('加载数据失败:', error);
   }
@@ -160,3 +313,21 @@ onMounted(() => {
   loadData();
 });
 </script>
+
+<style scoped>
+.stat-card {
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 32px;
+  font-weight: bold;
+  color: #1890ff;
+  margin-bottom: 8px;
+}
+
+.stat-label {
+  font-size: 14px;
+  color: #666;
+}
+</style>
